@@ -1,6 +1,6 @@
 # A file that defines the custom data structs used in our assignment
 
-class variable(object):
+class Variable(object):
     
     """ Class that represents the basic state of a variable """
     
@@ -12,4 +12,3 @@ class variable(object):
     def __str__(self):
         """ so str() operator can be used """
         return self.string_value
-        

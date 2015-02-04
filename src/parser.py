@@ -1,6 +1,7 @@
+from datastructures import Variable
 import re
 
-class Parser:
+class Parser(object):
 
     def parse(self, input):
         match_teach = re.match(r'[T/t]each (.*?) (->|=) (.*)', input)
@@ -22,10 +23,14 @@ class Parser:
             if operator == '=':
                 if rhs.startswith('"') and rhs.endswith('"'):
                     rhs_stripped = rhs[1:-1]
-                    print 'Definition: ' + rhs_stripped
+                    new_var = Variable(rhs_stripped)
+                    print new_var
+                    # store var
                 elif rhs.lower() == 'true':
+                    # grab and update var
                     print 'Boolean Value: ' + rhs.lower()
                 elif rhs.lower() == 'false':
+                    # grab and update var
                     print 'Boolean Value: ' + rhs.lower()
                 else:
                     print 'Unrecognized RHS' 
