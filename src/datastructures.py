@@ -12,3 +12,4 @@ class variable(object):
     def __str__(self):
         """ so str() operator can be used """
         return self.string_value
+        
