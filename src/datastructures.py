@@ -1,7 +1,7 @@
 # A file that defines the custom data structs used in our assignment
 
 variables = []
-facts = []
+facts_raw = []
 rules = []
 
 class Variable(object):
