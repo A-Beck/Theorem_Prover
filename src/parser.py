@@ -5,6 +5,7 @@ import re
 class Parser(object):
 
     def parse(self, input):
+        # Regex patterns for recognizing commands
         match_teach = re.match(r'[T/t]each (.*?) (->|=) (.*)', input)
         match_list = re.match(r'list', input, re.I)
         match_learn = re.match(r'learn', input, re.I)
@@ -21,7 +22,9 @@ class Parser(object):
             print 'Operator: ' + operator
             print 'RHS: ' + rhs
 
+            # New variable or assertion
             if operator == '=':
+                # New variable
                 if rhs.startswith('"') and rhs.endswith('"'):
                     rhs_stripped = rhs[1:-1]
                     new_var = Variable(lhs, rhs_stripped)
@@ -29,6 +32,7 @@ class Parser(object):
                         variables.append(new_var)
                     else:
                         print '{} already exists'.format(new_var)
+                # Asserting true
                 elif rhs.lower() == 'true':
                     for i,var, in enumerate(variables):
                         if var.name == lhs:
@@ -36,11 +40,13 @@ class Parser(object):
                             variables[i] = var
                         else:
                             print 'Variable doesn\'t exist'
+                # Asserting false
                 elif rhs.lower() == 'false':
-                    # grab and update var
                     print 'Boolean Value: ' + rhs.lower()
                 else:
                     print 'Unrecognized RHS'
+            
+            # New Rule
             elif operator == '->':
                 print 'New rule'
 
