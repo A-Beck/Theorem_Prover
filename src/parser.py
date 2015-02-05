@@ -1,4 +1,5 @@
 from datastructures import Variable
+from datastructures import variables, facts, rules
 import re
 
 class Parser(object):
@@ -7,7 +8,7 @@ class Parser(object):
         match_teach = re.match(r'[T/t]each (.*?) (->|=) (.*)', input)
         match_list = re.match(r'list', input, re.I)
         match_learn = re.match(r'learn', input, re.I)
-        match_query = re.match(r'[Q/q]uery', input)
+        match_query = re.match(r'[Q/q]uery (.*)', input)
 
         if match_teach:
             print 'Teaching...'
@@ -23,23 +24,43 @@ class Parser(object):
             if operator == '=':
                 if rhs.startswith('"') and rhs.endswith('"'):
                     rhs_stripped = rhs[1:-1]
-                    new_var = Variable(rhs_stripped)
-                    print new_var
-                    # store var
+                    new_var = Variable(lhs, rhs_stripped)
+                    if new_var not in variables:
+                        variables.append(new_var)
+                    else:
+                        print '{} already exists'.format(new_var)
                 elif rhs.lower() == 'true':
-                    # grab and update var
-                    print 'Boolean Value: ' + rhs.lower()
+                    for i,var, in enumerate(variables):
+                        if var.name == lhs:
+                            var.truth_value = True
+                            variables[i] = var
+                        else:
+                            print 'Variable doesn\'t exist'
                 elif rhs.lower() == 'false':
                     # grab and update var
                     print 'Boolean Value: ' + rhs.lower()
                 else:
-                    print 'Unrecognized RHS' 
+                    print 'Unrecognized RHS'
+            elif operator == '->':
+                print 'New rule'
 
         elif match_list:
-            print 'Listing...'
+            print 'Variables:'
+            for variable in variables:
+                print '\t{}'.format(variable.truth_value)
+
+            print 'Facts:'
+            for fact in facts:
+                print '\t{}'.format(fact)
+
+            print 'Rules:'
+
         elif match_learn:
             print 'Learning...'
+
         elif match_query:
             print 'Querying...'
+            exp = match_query.group(1)
+
         else:
             print 'Unrecognized LHS'
