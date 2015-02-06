@@ -21,3 +21,18 @@ class Variable(object):
     def __str__(self):
         """ so str() operator can be used """
         return '{} = "{}"'.format(self.name, self.string_value)
+    
+    
+class Rule(object):
+    
+    def __init__(self, exp, var):
+        self.expression = exp  # string
+        self.variable = var    # Variable object
+        
+    def __str__(self):
+        return self.expression + " -> " + variable.name
+    
+    def evaluate(self):
+        pass
+        
+    
