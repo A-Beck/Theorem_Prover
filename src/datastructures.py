@@ -26,7 +26,7 @@ class Variable(object):
 class Rule(object):
     
     def __init__(self, exp, var):
-        self.expression = exp  # string
+        self.expression = exp  # Expression Object
         self.variable = var    # Variable object
         
     def __str__(self):
@@ -34,5 +34,20 @@ class Rule(object):
     
     def evaluate(self):
         pass
-        
     
+    def validate(self):
+        """ validates that all variables """
+
+        
+class Expression(object):
+    
+    def __init__(self, string):
+        self.expr_str = string
+        self.token_list = self.tokenize()
+        
+    def tokenize(self):
+        temp_string = "".join(self.expr_str.split())
+        l = []
+        for char in temp_string:
+            l.append(char)
+        return l
