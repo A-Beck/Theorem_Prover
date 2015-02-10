@@ -60,11 +60,17 @@ class Expression(object):
 class TreeNode(object):
     """ Class used to make abstract syntax tree for Expressions"""
 
-    def __init__(self, value="", left=None, right=None):
+    def __init__(self, value="", left=None, right=None, neg=False):
         self.value = value
         self.left = left
         self.right = right
+        self.negate = neg
         
+    def __str__(self):
+        if not self.negate:
+            return self.value
+        else:
+            return "Not " + self.value
         
 def get_RPN(token_list):
     """ 
@@ -88,9 +94,7 @@ def get_RPN(token_list):
                     op = stack.pop()
                     queue.append(op)
                 stack.append(token)
-                print token + " added to stack"
             elif token == '(':
-                print '( added to stack'
                 stack.append(token)
             elif token == ')':
                 paren_matched = False
@@ -102,20 +106,59 @@ def get_RPN(token_list):
                     else:
                         queue.append(item)
                 if not paren_matched:
-                    print 'parenthesis mismatch'
+                    #print 'parenthesis mismatch'
                     return None
     while (len(stack) > 0):
         print stack
         top = stack.pop()
         if top == '(' or top == ')':
-            print 'mismatched parenthesis'
+            #print 'mismatched parenthesis'
             return None
         else:
             queue.append(top)
     return queue
                 
+def build_tree(queue):
+    """ 
+    Uses queue built in get_RPN method to build a tree ...
+    Head node is returned in success
+    None is returned in failure 
+    """
+    
+    stack = list()
+    while len(queue) > 0:
+        item = queue.popleft();
+        if is_var(variables, item):
+            stack.append(TreeNode(value=item))
+        elif item == '!':
+            if len(queue) > 0: 
+                item2 = queue.popleft()
+            else:
+                return None
+            if is_var(variables, item2):
+                stack.append(TreeNode(value=item2, neg=True))
+            else:
+                return None
+        elif item in operators:
+            right=stack.pop()
+            left= stack.pop()
+            stack.append(TreeNode(value=item, right=right, left=left, neg=False))
+    return stack.pop()
         
-        
+    
+## WARNING untested
+def calc_tree(node):
+    # if leaf, it is a Variable
+    if node.right is None and node.left is None:
+        if node.negate:
+            return not node.value.truth_value
+        else:
+            return node.value.truth_value
+    elif node.value = '^':
+        return calc_tree(node.right) and calc_tree(node.left)
+    elif node.value = 'v':
+        return calc_tree(node.right) or calc_tree(node.left)
+    
 # def get_token(token_list, expected):
 #     if token_list[0] == expected:
 #         del token_list[0]
@@ -131,11 +174,11 @@ def get_RPN(token_list):
 #     del token_list[0]
 #     return TreeNode(x_var, None, None)
 
-# def print_inorder(node):
-#     if node is not None:
-#         print_inorder(node.left)
-#         print node.value
-#         print_inorder(node.right)
+def print_inorder(node):
+    if node is not None:
+        print_inorder(node.left)
+        print node
+        print_inorder(node.right)
 
 
 
