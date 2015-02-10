@@ -10,6 +10,9 @@ def is_valid_op(char):
     allowed_ops = ['v', '^', '!', '(', ')']
     return char in allowed_ops
 
+def is_var(var_list, char):
+    return ( char.isalpha() and char.isupper() ) #and (find_var(var_list, char) is not None) )
+
 def check_rule_validity(var_list, lhs, rhs):
     rhs_var = find_var(var_list, rhs)
     if rhs_var is None:
