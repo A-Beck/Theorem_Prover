@@ -74,18 +74,17 @@ class TreeNode(object):
         
 def get_RPN(token_list):
     """ 
-    Builds an AST using shunting-yard algo
+    uses shunting-yard algo to get infix into RPN form
     Returns None if malformed input
-    Returns a queue in reverse polish notation if successful
+    Returns a queue of Variables in reverse polish notation if successful
     """
     # initialize data structures : SY is stack based
     stack = list()
     queue = deque([])
     for token in token_list:  # assumes token is a char
         if is_var(variables, token):
-            #var = find_var(variables, token)
-            #queue.append(var)
-            queue.append(token)
+            var = find_var(variables, token)
+            queue.append(var)
         elif is_valid_op(token):
             if token =='!':
                 queue.append(token)
@@ -128,17 +127,14 @@ def build_tree(queue):
     stack = list()
     while len(queue) > 0:
         item = queue.popleft();
-        if is_var(variables, item):
+        if type(item) is Variable:
             stack.append(TreeNode(value=item))
         elif item == '!':
             if len(queue) > 0: 
                 item2 = queue.popleft()
             else:
                 return None
-            if is_var(variables, item2):
-                stack.append(TreeNode(value=item2, neg=True))
-            else:
-                return None
+            stack.append(TreeNode(value=item2, neg=True))
         elif item in operators:
             right=stack.pop()
             left= stack.pop()
@@ -154,9 +150,9 @@ def calc_tree(node):
             return not node.value.truth_value
         else:
             return node.value.truth_value
-    elif node.value = '^':
+    elif node.value == '^':
         return calc_tree(node.right) and calc_tree(node.left)
-    elif node.value = 'v':
+    elif node.value =='v':
         return calc_tree(node.right) or calc_tree(node.left)
     
 # def get_token(token_list, expected):
