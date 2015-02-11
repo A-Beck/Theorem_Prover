@@ -6,7 +6,9 @@ variables = []
 facts_raw = []
 rules = []
 
-operators = ['^', 'v']
+_and = '&'
+_or = '|'
+_not = '!'
 
 class Variable(object):
     
@@ -53,13 +55,32 @@ class Expression(object):
         self.token_list = self.tokenize()
         
     def tokenize(self):
-        temp_string = "".join(self.expr_str.split())
-        l = []
-        for char in temp_string:
-            l.append(char)
-        return l
+        """ Parses a string into token list """
+        operators = ['(',')', _and, _or, _not]
+        array = list() # hold the tokens
+        aggregator = "" # accumulates the characters in a variable string
+        for char in self.expr_str:
+            if char in operators:
+                #if an operator, add current variable and the op
+                if aggregator != "":
+                    array.append(aggregator)
+                    aggregator = ""
+                array.append(char)
+            elif char == " ":
+                # if a space, stop aggregating and add the variable
+                if aggregator != "":
+                    array.append(aggregator)
+                    aggregator = ""
+            elif char.isalpha() or char == '_':
+                # if A-Z, a-z, or _, add to current variable string
+                aggregator = aggregator + char
+            else:
+                pass
+        if aggregator != "":
+            array.append(aggregator)    
+        return array
 
-
+    
 class TreeNode(object):
     """ Class used to make abstract syntax tree for Expressions"""
 
@@ -78,7 +99,8 @@ class TreeNode(object):
         
 def get_RPN(token_list):
     """ 
-    uses shunting-yard algo to get infix into RPN form
+    Uses shunting-yard algo to get infix into RPN form
+    Handles '!' outside a Parenthesis in a stateful way
     Returns None if malformed input
     Returns a queue of Variables in reverse polish notation if successful
     """
@@ -87,6 +109,9 @@ def get_RPN(token_list):
     queue = deque([])  # queue holds expression in RPN
     nm_stack = list()  # holds if expression is in negate mode or not
     nm_stack.append(False)  # start off in a state that is not negate mode
+    
+    # convienence array to check if 'and' or 'or'
+    operators = [_and, _or]
     
     def is_in_negate_mode():
         """ True if in negate mode, false otherwise"""
@@ -141,6 +166,9 @@ def get_RPN(token_list):
                         queue.append(item)
                 if not paren_matched:
                     return None
+            else:
+                #failure mode here ... nothing matches
+                pass
     while (len(stack) > 0):
         top = stack.pop()
         if top == '(' or top == ')':
@@ -160,6 +188,7 @@ def build_tree(queue):
     Head node is returned in success
     None is returned in failure 
     """
+    operators = [_and, _or]
     
     stack = list()
     while len(queue) > 0:
@@ -168,7 +197,7 @@ def build_tree(queue):
             pass
         elif type(item) is Variable:
             stack.append(TreeNode(value=item))
-        elif item == '!':
+        elif item == _not:
             if len(queue) > 0: 
                 item2 = queue.popleft()
             else:
@@ -181,7 +210,7 @@ def build_tree(queue):
     return stack.pop()
         
     
-## WARNING untested
+## gets a truth value given an expression Node
 def calc_tree(node):
     # if leaf, it is a Variable
     if node.right is None and node.left is None:
@@ -189,25 +218,10 @@ def calc_tree(node):
             return not node.value.truth_value
         else:
             return node.value.truth_value
-    elif node.value == '^':
+    elif node.value == _and:
         return calc_tree(node.right) and calc_tree(node.left)
-    elif node.value =='v':
+    elif node.value == _or:
         return calc_tree(node.right) or calc_tree(node.left)
-    
-# def get_token(token_list, expected):
-#     if token_list[0] == expected:
-#         del token_list[0]
-#         return True
-#     else:
-#         return False
-
-# def get_variable(token_list):
-#     x = token_list[0]
-#     x_var = find_var(variables, x)
-#     if type(x_var) != Variable:
-#         return None
-#     del token_list[0]
-#     return TreeNode(x_var, None, None)
 
 def print_inorder(node):
     if node is not None:
