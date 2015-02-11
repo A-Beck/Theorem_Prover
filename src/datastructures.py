@@ -14,11 +14,12 @@ class Variable(object):
     
     """ Class that represents the basic state of a variable """
     
-    def __init__(self, name="", str_val="", bool_val=False):
+    def __init__(self, name="", str_val="", bool_val=False, bool_val_soft=False):
         """ object state includes string value and truth value """
         self.name = name
         self.string_value = str_val
         self.truth_value = bool_val
+        self.truth_value_soft = bool_val_soft
 
     def __eq__(self, other):
         return (isinstance(other, self.__class__)
@@ -87,6 +88,11 @@ class Expression(object):
         queue = get_RPN(self.token_list)
         root_node = build_tree(queue)
         return calc_tree(root_node)
+
+    def soft_evaluate(self):
+        queue = get_RPN(self.token_list)
+        root_node = build_tree(queue)
+        return calc_tree_soft(root_node)
 
     
 class TreeNode(object):
@@ -232,11 +238,26 @@ def calc_tree(node):
     elif node.value == _or:
         return calc_tree(node.right) or calc_tree(node.left)
 
+## gets a truth value given an expression Node
+def calc_tree_soft(node):
+    # if leaf, it is a Variable
+    if node.right is None and node.left is None:
+        if node.negate:
+            return not node.value.truth_value_soft
+        else:
+            return node.value.truth_value_soft
+    elif node.value == _and:
+        return calc_tree_soft(node.right) and calc_tree_soft(node.left)
+    elif node.value == _or:
+        return calc_tree_soft(node.right) or calc_tree_soft(node.left)
+
+
 def print_inorder(node):
     if node is not None:
         print_inorder(node.left)
         print node
         print_inorder(node.right)
+
 
 def forward_chain(rules, facts):
     flag = True
@@ -251,3 +272,47 @@ def forward_chain(rules, facts):
             if expr_truth_value and (var not in facts):
                 facts.append(var)
                 flag = True
+
+
+def query_for_fact(var, rule_tup_list):
+    """
+     var is variable obj
+     returns nothing, but updates soft truth values in var objs
+    """
+    if var in facts_raw:
+        var.truth_value_soft = True
+    else:
+        rule_exists = False
+        for rule_tup in rule_tup_list:
+            if rule_tup[0].variable == var and rule_tup[1] is False:
+                rule_exists = True
+                expr = rule_tup[0].expression
+                for item in expr.token_list:
+                    if item not in [_and, _not, _or, '(', ')']:
+                        # it is a var
+                        new_var = find_var(variables, item)
+                        query_for_fact(new_var, rule_tup_list)
+                truth = expr.soft_evaluate()
+                var.truth_value_soft = truth
+                pass
+                del rule_tup
+                break
+        if rule_exists is False:
+            var.truth_value_soft = False
+
+
+def query(expression):
+    rule_tup_list = []
+    for rule in rules:
+        rule_tup_list.append((rule, False))
+    for item in expression.token_list:
+        if item not in [_and, _not, _or, '(', ')']:
+            # it is a var
+            var = find_var(variables, item)
+            query_for_fact(var, rule_tup_list)
+    result = expression.soft_evaluate()
+    return result
+
+
+        
+

@@ -1,6 +1,6 @@
 from datastructures import Variable, Rule, Expression
 from datastructures import variables, facts_raw, rules
-from datastructures import forward_chain
+from datastructures import forward_chain, query
 from helper import find_var
 import re
 
@@ -81,8 +81,9 @@ class Parser(object):
             print 'Querying...'
             exp = match_query.group(1)
             expr = Expression(exp)
-            expr_truth_value = expr.evaluate()
+            expr_truth_value = query(expr)
             print expr_truth_value
+
 
         elif match_why:
             print 'Explaining why...'
