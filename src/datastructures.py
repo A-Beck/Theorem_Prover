@@ -96,7 +96,8 @@ class TreeNode(object):
             return str(self.value)
         else:
             return "Not " + str(self.value)
-        
+
+# TODO: Comment this mess   
 def get_RPN(token_list):
     """ 
     Uses shunting-yard algo to get infix into RPN form
@@ -167,7 +168,7 @@ def get_RPN(token_list):
                 if not paren_matched:
                     return None
             else:
-                #failure mode here ... nothing matches
+                #TODO: failure mode here ... nothing matches
                 pass
     while (len(stack) > 0):
         top = stack.pop()
