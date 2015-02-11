@@ -36,7 +36,7 @@ class Rule(object):
         self.variable = var    # Variable object
         
     def __str__(self):
-        return self.expression + " -> " + variable.name
+        return str(self.expression) + " -> " + self.variable.name
     
     def __repr__(self):
         return str(self)
@@ -53,6 +53,9 @@ class Expression(object):
     def __init__(self, string):
         self.expr_str = string
         self.token_list = self.tokenize()
+
+    def __str__(self):
+        return str(self.expr_str)
         
     def tokenize(self):
         """ Parses a string into token list """
@@ -79,6 +82,11 @@ class Expression(object):
         if aggregator != "":
             array.append(aggregator)    
         return array
+
+    def evaluate(self):
+        queue = get_RPN(self.token_list)
+        root_node = build_tree(queue)
+        return calc_tree(root_node)
 
     
 class TreeNode(object):
@@ -238,10 +246,7 @@ def forward_chain(rules, facts):
             expr = rule.expression
             # var must exist in variables, add check
             var = rule.variable
-            token_list = expr.token_list
-            queue = get_RPN(token_list)
-            root_node = build_tree(queue)
-            expr_truth_value = calc_tree(root_node)
+            expr_truth_value = expr.evaluate()
 
             if expr_truth_value and (var not in facts):
                 facts.append(var)

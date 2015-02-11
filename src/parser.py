@@ -1,6 +1,7 @@
-from datastructures import Variable
+from datastructures import Variable, Rule, Expression
 from datastructures import variables, facts_raw, rules
 from datastructures import forward_chain
+from helper import find_var
 import re
 
 class Parser(object):
@@ -31,13 +32,15 @@ class Parser(object):
                         print 'Variable {} already exists'.format(new_var.name)
                 # Asserting true
                 elif rhs.lower() == 'true':
+                    flag = False
                     for i,var, in enumerate(variables):
                         if var.name == lhs:
+                            flag = True
                             var.truth_value = True
                             variables[i] = var
                             facts_raw.append(var)
-                        else:
-                            print 'Variable doesn\'t exist'
+                            break
+                    if not flag: print 'Variable doesn\'t exist'
                 # Asserting false
                 elif rhs.lower() == 'false':
                     for i, var in enumerate(variables):
@@ -53,7 +56,9 @@ class Parser(object):
             
             # New Rule
             elif operator == '->':
-                print 'New rule'
+                new_rule = Rule(Expression(lhs), find_var(variables,rhs))
+                rules.append(new_rule)
+
 
         elif match_list:
             print 'Variables:'
@@ -65,14 +70,19 @@ class Parser(object):
                 print '\t{}'.format(fact.name)
 
             print 'Rules:'
+            for rule in rules:
+                print '\t{}'.format(rule)
 
         elif match_learn:
             print 'Learning...'
-            forward_chain(rules, facts)
+            forward_chain(rules, facts_raw)
 
         elif match_query:
             print 'Querying...'
             exp = match_query.group(1)
+            expr = Expression(exp)
+            expr_truth_value = expr.evaluate()
+            print expr_truth_value
 
         elif match_why:
             print 'Explaining why...'
