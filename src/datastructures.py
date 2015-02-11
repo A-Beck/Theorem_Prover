@@ -36,6 +36,9 @@ class Rule(object):
     def __str__(self):
         return self.expression + " -> " + variable.name
     
+    def __repr__(self):
+        return str(self)
+    
     def evaluate(self):
         pass
     
@@ -67,10 +70,11 @@ class TreeNode(object):
         self.negate = neg
         
     def __str__(self):
+        # expects v
         if not self.negate:
-            return self.value
+            return str(self.value)
         else:
-            return "Not " + self.value
+            return "Not " + str(self.value)
         
 def get_RPN(token_list):
     """ 
@@ -79,44 +83,77 @@ def get_RPN(token_list):
     Returns a queue of Variables in reverse polish notation if successful
     """
     # initialize data structures : SY is stack based
-    stack = list()
-    queue = deque([])
-    for token in token_list:  # assumes token is a char
+    stack = list()  # stack holds operator and parenthesis
+    queue = deque([])  # queue holds expression in RPN
+    nm_stack = list()  # holds if expression is in negate mode or not
+    nm_stack.append(False)  # start off in a state that is not negate mode
+    
+    def is_in_negate_mode():
+        """ True if in negate mode, false otherwise"""
+        l = len(nm_stack)
+        if l > 0:
+            return nm_stack[l-1]
+        else:
+            return False
+    
+    for i in range(0, len(token_list)):  
+        token = token_list[i]
         if is_var(variables, token):
             var = find_var(variables, token)
+            if is_in_negate_mode(): 
+                queue.append('!')
             queue.append(var)
         elif is_valid_op(token):
             if token =='!':
-                queue.append(token)
+                next_token = token_list[i+1]
+                if is_in_negate_mode():
+                    if  next_token == '(':
+                        nm_stack.append(False)
+                    else:
+                        queue.append(token)
+                else:
+                    if next_token == '(':
+                        nm_stack.append(True)
+                    else: 
+                        queue.append(token)
             elif token in operators:
                 while len(stack) > 0 and stack[len(stack) -1] in operators:
-                    op = stack.pop()
-                    queue.append(op)
-                stack.append(token)
+                        op = stack.pop()
+                        queue.append(op)
+                if is_in_negate_mode(): 
+                    stack.append(negate_op(token))
+                else: 
+                    stack.append(token)
             elif token == '(':
                 stack.append(token)
+                if (i-1 >= 0) and token_list[i-1] != '!':
+                    nm_stack.append(is_in_negate_mode())
             elif token == ')':
                 paren_matched = False
                 while len(stack) > 0:
                     item = stack.pop()
                     if item == '(':
                         paren_matched = True
+                        if len(nm_stack) > 1:
+                            nm_stack.pop()
                         break
                     else:
                         queue.append(item)
                 if not paren_matched:
-                    #print 'parenthesis mismatch'
                     return None
     while (len(stack) > 0):
-        print stack
         top = stack.pop()
         if top == '(' or top == ')':
-            #print 'mismatched parenthesis'
             return None
         else:
             queue.append(top)
+    for i in range(0,len(queue)-1):
+        if queue[i] == '!' and queue[i+1] == '!':
+            queue[i] = ''
+            queue[i+1] = '' 
     return queue
-                
+           
+
 def build_tree(queue):
     """ 
     Uses queue built in get_RPN method to build a tree ...
@@ -127,7 +164,9 @@ def build_tree(queue):
     stack = list()
     while len(queue) > 0:
         item = queue.popleft();
-        if type(item) is Variable:
+        if item == '':
+            pass
+        elif type(item) is Variable:
             stack.append(TreeNode(value=item))
         elif item == '!':
             if len(queue) > 0: 

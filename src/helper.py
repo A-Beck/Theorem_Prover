@@ -25,3 +25,9 @@ def check_rule_validity(var_list, lhs, rhs):
         if val is None:
             return False
     return True
+
+def negate_op(operator):
+    if operator == '^':
+        return 'v'
+    elif operator == 'v':
+        return '^'
