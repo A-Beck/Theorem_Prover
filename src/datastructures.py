@@ -274,7 +274,7 @@ def forward_chain(rules, facts):
                 flag = True
 
 
-def query_for_fact(var, rule_tup_list):
+def query_for_fact(var, rule_dict):
     """
      var is variable obj
      returns nothing, but updates soft truth values in var objs
@@ -283,33 +283,32 @@ def query_for_fact(var, rule_tup_list):
         var.truth_value_soft = True
     else:
         rule_exists = False
-        for rule_tup in rule_tup_list:
-            if rule_tup[0].variable == var and rule_tup[1] is False:
+        for rule in rule_dict.keys():
+            if rule.variable == var and rule_dict[rule] is False:
                 rule_exists = True
-                expr = rule_tup[0].expression
+                rule_dict[rule] = True
+                expr = rule.expression
                 for item in expr.token_list:
                     if item not in [_and, _not, _or, '(', ')']:
                         # it is a var
                         new_var = find_var(variables, item)
-                        query_for_fact(new_var, rule_tup_list)
+                        query_for_fact(new_var, rule_dict)
                 truth = expr.soft_evaluate()
                 var.truth_value_soft = truth
-                pass
-                del rule_tup
                 break
         if rule_exists is False:
             var.truth_value_soft = False
 
 
 def query(expression):
-    rule_tup_list = []
+    rule_dict = {}
     for rule in rules:
-        rule_tup_list.append((rule, False))
+        rule_dict[rule] = False
     for item in expression.token_list:
         if item not in [_and, _not, _or, '(', ')']:
             # it is a var
             var = find_var(variables, item)
-            query_for_fact(var, rule_tup_list)
+            query_for_fact(var, rule_dict)
     result = expression.soft_evaluate()
     return result
 
