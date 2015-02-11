@@ -221,7 +221,6 @@ def forward_chain(rules, facts):
         flag = False
         for rule in rules:
             expr = rule.expression
-            # var must exist in variables, add check
             var = rule.variable
             token_list = expr.token_list
             queue = get_RPN(token_list)
@@ -231,9 +230,3 @@ def forward_chain(rules, facts):
             if expr_truth_value and (var not in facts):
                 facts.append(var)
                 flag = True
-
-
-
-
-
-

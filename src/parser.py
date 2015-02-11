@@ -1,5 +1,6 @@
 from datastructures import Variable
 from datastructures import variables, facts_raw, rules
+from datastructures import forward_chain
 import re
 
 class Parser(object):
@@ -67,6 +68,7 @@ class Parser(object):
 
         elif match_learn:
             print 'Learning...'
+            forward_chain(rules, facts)
 
         elif match_query:
             print 'Querying...'
