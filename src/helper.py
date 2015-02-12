@@ -36,7 +36,7 @@ def has_less_precedence(op1, op2):
     Returns a bool indicating if op1 has less precedence than op2
     """
     # order of precedence: not, and, or
-    if op1 == _not or _inclusive_not:
+    if (op1 == _not) or (op1 == _inclusive_not):
         return False
     elif op1 == _and:
         if op2 == _not or op2 == _inclusive_not:

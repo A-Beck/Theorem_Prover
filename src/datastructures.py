@@ -164,7 +164,7 @@ def get_RPN(token_list):
             # if token is an operator (o1)
             elif token in operators:
                 # while there is an operator token on top of the stack (o2), and either:
-                #    o1 is left associative and its precedence is <= 02
+                #    o1 is left associative and its precedence is <= o2
                 #    o1 is right associative and it precedence is < o2
                 while len(stack) > 0 and stack[len(stack) -1] in operators:
                         # pop o2 and append to output queue
@@ -357,7 +357,8 @@ def get_RPN_2(token_list):
     operators = [_and, _or, _not]
     
     #Read a token
-    for i in range(0, len(token_list)):  
+    for i in range(0, len(token_list)): 
+        #print str(queue)
         token = token_list[i]
         # if current token is a variable, append it to output queue
         if is_var(variables, token):
@@ -365,18 +366,22 @@ def get_RPN_2(token_list):
             queue.append(var)
         # if token is an operator (o1)
         elif token in operators:
+            # determine type of not used
+            if token == _not:
+                next_token = token_list[i+1]
+                if next_token == '(':
+                    token = _inclusive_not
             # while there is an operator token on top of the stack (o2), and either:
             # o1 is left associative and its precedence is <= o2, or
             # o1 is right associative and it precedence is < o2
-            while len(stack) > 0 and stack[len(stack) -1] in operators and \
+            while (len(stack) > 0) and (stack[len(stack) -1] in operators) and \
                     ((is_left_assoc(token) and has_less_precedence(token, stack[len(stack) -1])) or \
-                    (not is_left_assoc(token) and has_less_precedence(token, stack[len(stack) -1]))):
+                    ((not is_left_assoc(token)) and has_less_precedence(token, stack[len(stack) -1]))):
                     # pop o2 and append to output queue
                     op = stack.pop()
                     queue.append(op)
             # then push o1 onto the stack    
             stack.append(token)
-            print stack
         # If the token is a left parenthesis, then push it onto the stack.
         elif token == '(':
             stack.append(token)
@@ -389,6 +394,7 @@ def get_RPN_2(token_list):
                 item = stack.pop()
                 if item == '(':
                     paren_matched = True
+                    break
                 else:
                     queue.append(item)
             # If the stack runs out without finding a left parenthesis, 
@@ -398,7 +404,7 @@ def get_RPN_2(token_list):
                 return None
         else:
             #TODO: failure mode here, token matches nothing we can identify
-            print "invalid token"
+            print "Invalid token: " + token
             return None
     # When there are no more tokens to read
     # While there are still operator tokens in the stack
@@ -430,9 +436,13 @@ def build_tree_2(queue):
             pass
         elif type(item) is Variable:
             stack.append(TreeNode(value=item))
-        elif item == _not:
+        elif item == _inclusive_not:
             right=stack.pop()
             stack.append(TreeNode(value=item, right=right, left=None, neg=False))
+        elif item == _not:
+            last_node = stack.pop()
+            last_node.negate = not last_node.negate
+            stack.append(last_node)
         elif item in operators:
             right=stack.pop()
             left= stack.pop()
@@ -444,10 +454,34 @@ def build_tree_2(queue):
 def calc_tree_2(node):
     # if leaf, it is a Variable
     if node.right is None and node.left is None:
+        if node.negate:
+            return not node.value.truth_value
+        else:
             return node.value.truth_value
-    if node.value == _not:
-        return not calc_tree(node.right)
+    elif node.value == _inclusive_not:
+        if node.negate:
+            return calc_tree_2(node.right)
+        else:
+            return not calc_tree_2(node.right)
     elif node.value == _and:
-        return calc_tree(node.right) and calc_tree(node.left)
+        return calc_tree_2(node.right) and calc_tree_2(node.left)
     elif node.value == _or:
-        return calc_tree(node.right) or calc_tree(node.left)
+        return calc_tree_2(node.right) or calc_tree_2(node.left)
+    
+    
+def calc_tree_soft_2(node):
+    # if leaf, it is a Variable
+    if node.right is None and node.left is None:
+        if node.negate:
+            return not node.value.truth_value_soft
+        else:
+            return node.value.truth_value_soft
+    elif node.value == _inclusive_not:
+        if node.negate:
+            return calc_tree_soft_2(node.right)
+        else:
+            return not calc_tree_soft_2(node.right)
+    elif node.value == _and:
+        return calc_tree_soft_2(node.right) and calc_tree_soft_2(node.left)
+    elif node.value == _or:
+        return calc_tree_soft_2(node.right) or calc_tree_soft_2(node.left)
