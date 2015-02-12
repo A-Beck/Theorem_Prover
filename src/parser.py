@@ -1,6 +1,6 @@
 from datastructures import Variable, Rule, Expression
 from datastructures import variables, facts_raw, rules
-from datastructures import forward_chain, query
+from datastructures import forward_chain, query, why
 from helper import find_var
 import re
 
@@ -75,20 +75,20 @@ class Parser(object):
                 print '\t{}'.format(rule)
 
         elif match_learn:
-            print 'Learning...'
             forward_chain(rules, facts_raw)
 
         elif match_query:
-            print 'Querying...'
             exp = match_query.group(1)
             expr = Expression(exp)
             expr_truth_value = query(expr)
             print expr_truth_value
 
-
         elif match_why:
-            print 'Explaining why...'
             exp = match_why.group(1)
+            expr = Expression(exp)
+            why_tuple = why(expr)
+            print why_tuple[0]
+            print why_tuple[1]
 
         else:
             print 'Unrecognized LHS'

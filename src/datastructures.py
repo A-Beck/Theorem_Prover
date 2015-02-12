@@ -340,6 +340,45 @@ def query(expression):
     result = expression.soft_evaluate()
     return result
 
+def why_for_fact(var, rule_dict):
+    """
+     var is variable obj
+     returns nothing, but updates soft truth values in var objs
+    """
+    if var in facts_raw:
+        var.truth_value_soft = True
+    else:
+        rule_exists = False
+        for rule in rule_dict.keys():
+            if rule.variable == var and rule_dict[rule] is False:
+                rule_exists = True
+                rule_dict[rule] = True
+                expr = rule.expression
+                for item in expr.token_list:
+                    if item not in [_and, _not, _or, '(', ')']:
+                        # it is a var
+                        new_var = find_var(variables, item)
+                        result_str = 'BECAUSE {} I KNOW THAT {}'.format(new_var.string_value, var.string_value)
+                        why_for_fact(new_var, rule_dict)
+                truth = expr.soft_evaluate()
+                var.truth_value_soft = truth
+                return result_str
+        if rule_exists is False:
+            var.truth_value_soft = False
+
+
+def why(expression):
+    rule_dict = {}
+    for rule in rules:
+        rule_dict[rule] = False
+    for item in expression.token_list:
+        if item not in [_and, _not, _or, '(', ')']:
+            # it is a var
+            var = find_var(variables, item)
+            result_str = why_for_fact(var, rule_dict)
+    result = expression.soft_evaluate()
+    return result, result_str
+
 ##################################
 
 def get_RPN_2(token_list):
