@@ -43,14 +43,15 @@ class Parser(object):
                     if not flag: print 'Variable doesn\'t exist'
                 # Asserting false
                 elif rhs.lower() == 'false':
-                    for i, var in enumerate(variables):
+                    flag = False
+                    for i,var, in enumerate(variables):
                         if var.name == lhs:
+                            flag = True
                             var.truth_value = False
                             variables[i] = var
-                            if var in facts_raw:
-                                facts_raw.remove(var)
-                        else:
-                            print 'Variable doesn\'t exist'
+                            facts_raw.remove(var)
+                            break
+                    if not flag: print 'Variable doesn\'t exist'
                 else:
                     print 'Unrecognized RHS'
             
