@@ -9,6 +9,7 @@ rules = []
 _and = '&'
 _or = '|'
 _not = '!'
+_inclusive_not = '@'
 
 class Variable(object):
     
@@ -111,13 +112,14 @@ class TreeNode(object):
         else:
             return "Not " + str(self.value)
 
-# TODO: Comment this mess   
+
 def get_RPN(token_list):
     """ 
     Uses shunting-yard algo to get infix into RPN form
     Handles '!' outside a Parenthesis in a stateful way
     Returns None if malformed input
     Returns a queue of Variables in reverse polish notation if successful
+    Most comments come from the wikipedia article on this algo
     """
     # initialize data structures : SY is stack based
     stack = list()  # stack holds operator and parenthesis
@@ -125,7 +127,7 @@ def get_RPN(token_list):
     nm_stack = list()  # holds if expression is in negate mode or not
     nm_stack.append(False)  # start off in a state that is not negate mode
     
-    # convienence array to check if 'and' or 'or'
+    # convienence array to easily check check char is an 'and' or 'or'
     operators = [_and, _or]
     
     def is_in_negate_mode():
@@ -135,16 +137,19 @@ def get_RPN(token_list):
             return nm_stack[l-1]
         else:
             return False
-    
+    # Read a token
     for i in range(0, len(token_list)):  
         token = token_list[i]
+        # if current token is a variable, append it to output queue
         if is_var(variables, token):
             var = find_var(variables, token)
+            # if in negate mode, apply demorgan
             if is_in_negate_mode(): 
                 queue.append('!')
             queue.append(var)
+        # manage nots based on negate mode
         elif is_valid_op(token):
-            if token =='!':
+            if token == _not:
                 next_token = token_list[i+1]
                 if is_in_negate_mode():
                     if  next_token == '(':
@@ -156,20 +161,33 @@ def get_RPN(token_list):
                         nm_stack.append(True)
                     else: 
                         queue.append(token)
+            # if token is an operator (o1)
             elif token in operators:
+                # while there is an operator token on top of the stack (o2), and either:
+                #    o1 is left associative and its precedence is <= 02
+                #    o1 is right associative and it precedence is < o2
                 while len(stack) > 0 and stack[len(stack) -1] in operators:
+                        # pop o2 and append to output queue
                         op = stack.pop()
                         queue.append(op)
+                # then push o1 onto the stack
+                # if in negate mode, apply demorgan first       
                 if is_in_negate_mode(): 
                     stack.append(negate_op(token))
                 else: 
                     stack.append(token)
+            # If the token is a left parenthesis, then push it onto the stack.
             elif token == '(':
                 stack.append(token)
+                # if negate mode was not altered by previous token
+                # maintain negate mode from outer scope
                 if (i-1 >= 0) and token_list[i-1] != '!':
                     nm_stack.append(is_in_negate_mode())
+            # if the token is a right parenthesis:
             elif token == ')':
                 paren_matched = False
+                # Until the token at the top of the stack is a left parenthesis, 
+                # pop operators off the stack onto the output queue.
                 while len(stack) > 0:
                     item = stack.pop()
                     if item == '(':
@@ -179,17 +197,25 @@ def get_RPN(token_list):
                         break
                     else:
                         queue.append(item)
+                # If the stack runs out without finding a left parenthesis, 
+                # then there are mismatched parentheses
                 if not paren_matched:
                     return None
             else:
-                #TODO: failure mode here ... nothing matches
-                pass
+                #TODO: failure mode here, token matches nothing we can identify
+                return None
+    # When there are no more tokens to read
+    # While there are still operator tokens in the stack
     while (len(stack) > 0):
         top = stack.pop()
+        # If the operator token on the top of the stack is a parenthesis, 
+        # then there are mismatched parentheses
         if top == '(' or top == ')':
             return None
+        # Pop the operator onto the output queue
         else:
             queue.append(top)
+    # if there are two negatives right after eachother, they cancel eachother
     for i in range(0,len(queue)-1):
         if queue[i] == '!' and queue[i+1] == '!':
             queue[i] = ''
@@ -254,9 +280,11 @@ def calc_tree_soft(node):
 
 def print_inorder(node):
     if node is not None:
-        print_inorder(node.left)
+        if node.left is not None:
+            print_inorder(node.left)
         print node
-        print_inorder(node.right)
+        if node.right is not None:
+            print_inorder(node.right)
 
 
 def forward_chain(rules, facts):
@@ -312,6 +340,114 @@ def query(expression):
     result = expression.soft_evaluate()
     return result
 
+##################################
 
+def get_RPN_2(token_list):
+    """ 
+    Uses shunting-yard algo to get infix into RPN form
+    Handles '!' outside a Parenthesis in a stateful way
+    Returns None if malformed input
+    Returns a queue of Variables in reverse polish notation if successful
+    """
+    # initialize data structures : SY is stack based
+    stack = list()  # stack holds operator and parenthesis
+    queue = deque([])  # queue holds expression in RPN
+    
+    # convienence array to easily check check char is an 'and' or 'or'
+    operators = [_and, _or, _not]
+    
+    #Read a token
+    for i in range(0, len(token_list)):  
+        token = token_list[i]
+        # if current token is a variable, append it to output queue
+        if is_var(variables, token):
+            var = find_var(variables, token)
+            queue.append(var)
+        # if token is an operator (o1)
+        elif token in operators:
+            # while there is an operator token on top of the stack (o2), and either:
+            # o1 is left associative and its precedence is <= o2, or
+            # o1 is right associative and it precedence is < o2
+            while len(stack) > 0 and stack[len(stack) -1] in operators and \
+                    ((is_left_assoc(token) and has_less_precedence(token, stack[len(stack) -1])) or \
+                    (not is_left_assoc(token) and has_less_precedence(token, stack[len(stack) -1]))):
+                    # pop o2 and append to output queue
+                    op = stack.pop()
+                    queue.append(op)
+            # then push o1 onto the stack    
+            stack.append(token)
+            print stack
+        # If the token is a left parenthesis, then push it onto the stack.
+        elif token == '(':
+            stack.append(token)
+        # if the token is a right parenthesis:
+        elif token == ')':
+            paren_matched = False
+            # Until the token at the top of the stack is a left parenthesis, 
+            # pop operators off the stack onto the output queue.
+            while len(stack) > 0:
+                item = stack.pop()
+                if item == '(':
+                    paren_matched = True
+                else:
+                    queue.append(item)
+            # If the stack runs out without finding a left parenthesis, 
+            # then there are mismatched parentheses
+            if not paren_matched:
+                print 'mismatched parenthesis'
+                return None
+        else:
+            #TODO: failure mode here, token matches nothing we can identify
+            print "invalid token"
+            return None
+    # When there are no more tokens to read
+    # While there are still operator tokens in the stack
+    while (len(stack) > 0):
+        top = stack.pop()
+        # If the operator token on the top of the stack is a parenthesis, 
+        if top == '(' or top == ')':
+             # then there are mismatched parentheses
+            print 'mismatched parenthesis'
+            return None
+        # Pop the operator onto the output queue
+        else:
+            queue.append(top)
+    return queue
         
 
+def build_tree_2(queue):
+    """ 
+    Uses queue built in get_RPN method to build a tree ...
+    Head node is returned in success
+    None is returned in failure 
+    """
+    operators = [_and, _or]
+    
+    stack = list()
+    while len(queue) > 0:
+        item = queue.popleft();
+        if item == '':
+            pass
+        elif type(item) is Variable:
+            stack.append(TreeNode(value=item))
+        elif item == _not:
+            right=stack.pop()
+            stack.append(TreeNode(value=item, right=right, left=None, neg=False))
+        elif item in operators:
+            right=stack.pop()
+            left= stack.pop()
+            stack.append(TreeNode(value=item, right=right, left=left, neg=False))
+    return stack.pop()
+
+
+## gets a truth value given an expression Node
+def calc_tree_2(node):
+    # if leaf, it is a Variable
+    if node.right is None and node.left is None:
+            return node.value.truth_value
+    if node.value == _not:
+        return not calc_tree(node.right)
+    elif node.value == _and:
+        return calc_tree(node.right) and calc_tree(node.left)
+    elif node.value == _or:
+        return calc_tree(node.right) or calc_tree(node.left)
