@@ -557,18 +557,25 @@ def explain_result(node):
     if node.right is None and node.left is None:
         if node.value.applied_rule is None:
             if node.negate:
+                print 'I KNOW IT IS NOT TRUE THAT ' + node.value.string_value
                 return 'I KNOW IT IS NOT TRUE THAT ' + node.value.string_value
             else:
+                print 'I KNOW THAT ' + node.value.string_value
                 return 'I KNOW THAT ' + node.value.string_value
         else:
+            print 'BECAUSE ' + node.value.applied_rule.exp.why_stringify() + ' I know that ' + str(node.value.truth_value_soft)
             return 'BECAUSE ' + node.value.applied_rule.exp.why_stringify() + ' I know that ' + str(node.value.truth_value_soft)
     elif node.value == _inclusive_not:
         if node.applied_rule is None:
             if node.negate:
+                print 'I know that not not ' + explain_result(node.right)
                 return 'I know that not not ' + explain_result(node.right)
             else:
+                print 'I know that not ' + node.value.string_value + ' is ' + str(node.value.truth_value_soft)
                 return 'I know that not ' + node.value.string_value + ' is ' + str(node.value.truth_value_soft)
     elif node.value == _and:
+        print 'I know that ( ' + explain_result(node.right) + ' and ' + explain_result(node.left) + ' )'
         return 'I know that ( ' + explain_result(node.right) + ' and ' + explain_result(node.left) + ' )'
     elif node.value == _or:
+        print 'I know that ( ' + explain_result(node.right) + ' or ' + explain_result(node.left) + ' )'
         return 'I know that ( ' + explain_result(node.right) + ' or ' + explain_result(node.left) + ' )'
