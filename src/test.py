@@ -13,12 +13,13 @@ facts_raw.append(B)
 
 exp = Expression('A & B')
 rule = Rule(exp, C)
-print rule
+print exp.why_stringify()
+# print rule
+#
+# rules.append(rule)
 
-rules.append(rule)
-
-truth = query(Expression('A & C'))
+# truth = query(Expression('A & C'))
 
 #truth = exp.soft_evaluate()
 
-print str(truth)
+# print str(truth)

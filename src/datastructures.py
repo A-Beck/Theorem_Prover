@@ -15,12 +15,13 @@ class Variable(object):
     
     """ Class that represents the basic state of a variable """
     
-    def __init__(self, name="", str_val="", bool_val=False, bool_val_soft=False):
+    def __init__(self, name="", str_val="", bool_val=False, bool_val_soft=False, applied_rule=None):
         """ object state includes string value and truth value """
         self.name = name
         self.string_value = str_val
         self.truth_value = bool_val
         self.truth_value_soft = bool_val_soft
+        self.applied_rule = applied_rule
 
     def __eq__(self, other):
         return (isinstance(other, self.__class__)
@@ -58,6 +59,25 @@ class Expression(object):
 
     def __str__(self):
         return str(self.expr_str)
+
+    def why_stringify(self):
+        agg_string = ''
+        operators = ['(',')', _and, _or, _not]
+        operators_map = {
+            '(': '(',
+            ')': ')',
+            _and: 'AND',
+            _or: 'OR',
+            _not: 'NOT'
+        }
+        for item in self.token_list:
+            if item not in operators:
+                var = find_var(variables, item)
+                agg_string = agg_string + ' ' + var.string_value
+            else:
+                agg_string = agg_string + ' ' + operators_map.get(item)
+
+        return agg_string
         
     def tokenize(self):
         """ Parses a string into token list """
@@ -323,6 +343,7 @@ def query_for_fact(var, rule_dict):
                         query_for_fact(new_var, rule_dict)
                 truth = expr.soft_evaluate()
                 var.truth_value_soft = truth
+                var.applied_rule = rule
                 break
         if rule_exists is False:
             var.truth_value_soft = False
@@ -339,6 +360,7 @@ def query(expression):
             query_for_fact(var, rule_dict)
     result = expression.soft_evaluate()
     return result
+
 
 def why_for_fact(var, rule_dict):
     """
@@ -377,6 +399,10 @@ def why(expression):
             var = find_var(variables, item)
             result_str = why_for_fact(var, rule_dict)
     result = expression.soft_evaluate()
+    token_list = expression.token_list
+    queue = get_RPN_2(token_list)
+    node = build_tree_2(queue)
+    result_str = explain_result(node)
     return result, result_str
 
 ##################################
@@ -524,3 +550,25 @@ def calc_tree_soft_2(node):
         return calc_tree_soft_2(node.right) and calc_tree_soft_2(node.left)
     elif node.value == _or:
         return calc_tree_soft_2(node.right) or calc_tree_soft_2(node.left)
+
+
+def explain_result(node):
+    # if leaf, it is a Variable
+    if node.right is None and node.left is None:
+        if node.value.applied_rule is None:
+            if node.negate:
+                return 'I KNOW IT IS NOT TRUE THAT ' + node.value.string_value
+            else:
+                return 'I KNOW THAT ' + node.value.string_value
+        else:
+            return 'BECAUSE ' + node.value.applied_rule.exp.why_stringify() + ' I know that ' + str(node.value.truth_value_soft)
+    elif node.value == _inclusive_not:
+        if node.applied_rule is None:
+            if node.negate:
+                return 'I know that not not ' + explain_result(node.right)
+            else:
+                return 'I know that not ' + node.value.string_value + ' is ' + str(node.value.truth_value_soft)
+    elif node.value == _and:
+        return 'I know that ( ' + explain_result(node.right) + ' and ' + explain_result(node.left) + ' )'
+    elif node.value == _or:
+        return 'I know that ( ' + explain_result(node.right) + ' or ' + explain_result(node.left) + ' )'
