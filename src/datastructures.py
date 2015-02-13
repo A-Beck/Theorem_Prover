@@ -359,51 +359,105 @@ def query(expression):
             var = find_var(variables, item)
             query_for_fact(var, rule_dict)
     result = expression.soft_evaluate()
+    inorder_clean(node)
     return result
 
-
-def why_for_fact(var, rule_dict):
+# see note above why() for more info
+def why_for_fact(var, rule_dict, string_queue, used_vars):
     """
      var is variable obj
+     rule dict holds what rules have / have not been used to prevent looping
+     string queue hold order of found rules
      returns nothing, but updates soft truth values in var objs
     """
     if var in facts_raw:
-        var.truth_value_soft = True
-    else:
-        rule_exists = False
+        if var not in used_vars:  # do not want to evaluate same var twice
+            if var.truth_value == True:
+                var.truth_value_soft = True
+                string = 'I KNOW THAT {}'.format(var.string_value)
+            else:
+                var.string_value
+                string = 'I KNOW IT IS NOT TRUE THAT {}'.format(var.string_value)
+            used_vars.append(var)  # mark this var as evaluated
+            string_queue.append(string)  # add this to the string queue, will eventually be printed
+    else:  # not in facts list, need to eval rules
+        rule_exists = False  # flag if a rule exists that can help determine our variable
+        found_positive = False  # flag that marks if variable can be proven true
+        neg_list = []  # temp container that holds negative results (see piazza)
         for rule in rule_dict.keys():
-            if rule.variable == var and rule_dict[rule] is False:
+            if rule.variable == var and rule_dict[rule] is False and rule.variable not in used_vars:
                 rule_exists = True
-                rule_dict[rule] = True
                 expr = rule.expression
                 for item in expr.token_list:
                     if item not in [_and, _not, _or, '(', ')']:
                         # it is a var
                         new_var = find_var(variables, item)
-                        result_str = 'BECAUSE {} I KNOW THAT {}'.format(new_var.string_value, var.string_value)
-                        why_for_fact(new_var, rule_dict)
+                        if new_var not in used_vars:
+                            why_for_fact(new_var, rule_dict, string_queue, used_vars)
                 truth = expr.soft_evaluate()
                 var.truth_value_soft = truth
-                return result_str
+                if truth == True:
+                    result_str = 'BECAUSE {} I KNOW THAT {}'.format(expr.why_stringify(), var.string_value)
+                    rule_dict[rule] = True
+                    found_positive = True
+                    string_queue.append(result_str)
+                    used_vars.append(var)  # mark this var as evaluated
+                else:
+                    result_str = \
+                        'BECAUSE IT IS NOT TRUE THAT {} I CANNOT PROVE {}'.format(expr.why_stringify(), var.string_value)
+                    neg_list.append(result_str)
+        if found_positive == False:
+            for item in neg_list:
+                string_queue.append(item)
+            used_vars.append(var)  # mark this var as evaluated
+            var.truth_value_soft = False
         if rule_exists is False:
             var.truth_value_soft = False
+            used_vars.append(var)  # mark this var as evaluated
 
 
+# Current idea is to build up string responses in a queue
+# this queue is built in both why_for_fact as well as explain_result_2
+# in w_f_f, strings are found corresponding to variables in the variables array and the rules list
+# therefore, all strings in the 'I Know', 'I KNOW IT IS NOT', 'BECAUSE', and 'BECAUSE it is not true'
+#    are built here
+# in e_r_2, strings are found that need truth values to be evalutated
+# therefore, all 'THUS I know that' and 'Thus I cannot porve' strings are built there
+# The used Variables list makes sure you do not check a variable's status more than once
 def why(expression):
     rule_dict = {}
+    string_queue = deque([])
+    used_variables = []
     for rule in rules:
         rule_dict[rule] = False
     for item in expression.token_list:
         if item not in [_and, _not, _or, '(', ')']:
             # it is a var
             var = find_var(variables, item)
-            result_str = why_for_fact(var, rule_dict)
+            result_str = why_for_fact(var, rule_dict, string_queue, used_variables)
     result = expression.soft_evaluate()
+    #for item in string_queue: print item
     token_list = expression.token_list
     queue = get_RPN_2(token_list)
     node = build_tree_2(queue)
-    result_str = explain_result(node)
+    truth, result_str = explain_result_2(node, string_queue)
+    print truth
+    while len(string_queue) > 0:
+        print string_queue.popleft()
+    inorder_clean(node)
     return result, result_str
+
+
+def inorder_clean(node):
+    """ Resets the soft truth values and the associated rules in an expression tree"""
+    if node is not None:
+        if node.left is not None:
+            inorder_clean(node.left)
+        if type(node.value) == Variable:
+            node.value.truth_value_soft = False
+            node.value.applied_rule = None
+        if node.right is not None:
+            inorder_clean(node.right)
 
 ##################################
 
@@ -579,3 +633,52 @@ def explain_result(node):
     elif node.value == _or:
         print 'I know that ( ' + explain_result(node.right) + ' or ' + explain_result(node.left) + ' )'
         return 'I know that ( ' + explain_result(node.right) + ' or ' + explain_result(node.left) + ' )'
+    
+    
+# see note by 'why' function
+# email me if you need any of this explained before sunday night
+def explain_result_2(node, string_queue):
+    # if leaf, it is a Variable
+    if node.right is None and node.left is None:
+        if node.negate:
+            return not node.value.truth_value_soft, node.value.string_value
+        else:
+            return node.value.truth_value_soft, node.value.string_value
+    elif node.value == _inclusive_not:
+        if node.negate:
+            truth, string = explain_result_2(node.right, string_queue)
+            if truth == True:
+                string_queue.append('THUS I KNOW THAT NOT NOT {}'.format(string))
+            else:
+                string_queue.append('THUS I CANNOT PROVE NOT NOT {}'.format(string))
+            info_string = 'NOT NOT {}'.format(string)
+            return truth, info_string
+        else:
+            truth, string = explain_result_2(node.right, string_queue)
+            truth = not truth
+            if truth == True:
+                string_queue.append('THUS I KNOW THAT NOT {}'.format(string))
+            else:
+                string_queue.append('THUS I CANNOT PROVE NOT {}'.format(string))
+            info_string = 'NOT NOT {}'.format(string)
+            return not truth, str_info
+    elif node.value == _and:
+        r_truth, r_string = explain_result_2(node.right, string_queue) 
+        l_truth, l_string = explain_result_2(node.left, string_queue)
+        truth = r_truth and l_truth
+        string = '( {} AND {} )'.format(r_string, l_string)
+        if truth == True:
+            string_queue.append('THUS I KNOW THAT {}'.format(string, string_queue))
+        else:
+            string_queue.append('THUS I CANNOT PROVE {}'.format(string, string_queue))
+        return truth, string
+    elif node.value == _or:
+        r_truth, r_string = explain_result_2(node.right) 
+        l_truth, l_string = explain_result_2(node.left)
+        truth = r_truth or l_truth
+        string = '( {} OR {} )'.format(r_string, l_string)
+        if truth == True:
+            string_queue.append('THUS I KNOW THAT {}'.format(string, string_queue))
+        else:
+            string_queue.append('THUS I CANNOT PROVE {}'.format(string, string_queue))
+        return truth, string
