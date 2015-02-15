@@ -87,8 +87,8 @@ class Parser(object):
             exp = match_why.group(1)
             expr = Expression(exp)
             why_tuple = why(expr)
-            print why_tuple[0]
-            print why_tuple[1]
+            # print why_tuple[0]
+            # print why_tuple[1]
 
         else:
             print 'Unrecognized LHS'
