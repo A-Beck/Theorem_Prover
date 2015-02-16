@@ -318,6 +318,7 @@ def forward_chain(rules, facts):
             expr_truth_value = expr.evaluate()
 
             if expr_truth_value and (var not in facts):
+                var.truth_value = True
                 facts.append(var)
                 flag = True
 
@@ -359,7 +360,7 @@ def query(expression):
             var = find_var(variables, item)
             query_for_fact(var, rule_dict)
     result = expression.soft_evaluate()
-    inorder_clean(node)
+    # inorder_clean(node)
     return result
 
 # see note above why() for more info
