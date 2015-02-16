@@ -39,6 +39,8 @@ class Test(unittest.TestCase):
 
         self.exp1 = Expression('S&V')
         self.exp2 = Expression('!(B)')
+        self.exp3 = Expression('!(!(S|V)&(!B))')
+        # not (not (True and True) and ( not False)) --> True
 
         # set up rules
 
@@ -48,14 +50,10 @@ class Test(unittest.TestCase):
         rule2 = Rule(self.exp2, var6)
         rules.append(rule2)
 
-
-
-        pass
-
     def test_query(self):
         self.assertTrue(query(self.exp1))
         self.assertTrue(query(self.exp2))
-
+        self.assertTrue(query(self.exp3))
 
     def test_forward_chain(self):
         pass
