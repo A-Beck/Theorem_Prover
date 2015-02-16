@@ -60,7 +60,16 @@ class Test(unittest.TestCase):
 
     def test_why(self):
         """Print line testing why()"""
-        pass
+        why(Expression('A'))  # simplest case
+	print '\n'
+	why(Expression('!A')) # A slightly more complex case
+	print '\n'
+	why(self.exp1)	# simple expression test
+	print '\n'
+	why(self.exp3)
+	print '\n'
+		
+
 
 if __name__ == '__main__':
     unittest.main()

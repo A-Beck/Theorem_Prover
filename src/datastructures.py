@@ -450,8 +450,9 @@ def calc_tree_soft(node):
 def explain_result(node, string_queue):
     # if leaf, it is a Variable
     if node.right is None and node.left is None:
-        if node.negate:
-            return not node.value.truth_value_soft, node.value.string_value
+        # No children indicate Variable
+	if node.negate:
+            return not node.value.truth_value_soft, 'NOT ' + str(node.value.string_value)
         else:
             return node.value.truth_value_soft, node.value.string_value
     elif node.value == _inclusive_not:
@@ -483,8 +484,8 @@ def explain_result(node, string_queue):
             string_queue.append('THUS I CANNOT PROVE {}'.format(string, string_queue))
         return truth, string
     elif node.value == _or:
-        r_truth, r_string = explain_result(node.right)
-        l_truth, l_string = explain_result(node.left)
+        r_truth, r_string = explain_result(node.right, string_queue)
+        l_truth, l_string = explain_result(node.left, string_queue)
         truth = r_truth or l_truth
         string = '( {} OR {} )'.format(r_string, l_string)
         if truth == True:
