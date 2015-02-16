@@ -163,7 +163,10 @@ def query_for_fact(var, rule_dict):
      returns nothing, but updates soft truth values in var objs
     """
     if var in facts_raw:
-        var.truth_value_soft = True
+        if var.truth_value == True:
+            var.truth_value_soft = True
+        else:
+            var.string_value
     else:
         rule_exists = False
         for rule in rule_dict.keys():
