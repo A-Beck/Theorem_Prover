@@ -132,172 +132,6 @@ class TreeNode(object):
         else:
             return "Not " + str(self.value)
 
-
-def get_RPN(token_list):
-    """ 
-    Uses shunting-yard algo to get infix into RPN form
-    Handles '!' outside a Parenthesis in a stateful way
-    Returns None if malformed input
-    Returns a queue of Variables in reverse polish notation if successful
-    Most comments come from the wikipedia article on this algo
-    """
-    # initialize data structures : SY is stack based
-    stack = list()  # stack holds operator and parenthesis
-    queue = deque([])  # queue holds expression in RPN
-    nm_stack = list()  # holds if expression is in negate mode or not
-    nm_stack.append(False)  # start off in a state that is not negate mode
-    
-    # convienence array to easily check check char is an 'and' or 'or'
-    operators = [_and, _or]
-    
-    def is_in_negate_mode():
-        """ True if in negate mode, false otherwise"""
-        l = len(nm_stack)
-        if l > 0:
-            return nm_stack[l-1]
-        else:
-            return False
-    # Read a token
-    for i in range(0, len(token_list)):  
-        token = token_list[i]
-        # if current token is a variable, append it to output queue
-        if is_var(variables, token):
-            var = find_var(variables, token)
-            # if in negate mode, apply demorgan
-            if is_in_negate_mode(): 
-                queue.append('!')
-            queue.append(var)
-        # manage nots based on negate mode
-        elif is_valid_op(token):
-            if token == _not:
-                next_token = token_list[i+1]
-                if is_in_negate_mode():
-                    if  next_token == '(':
-                        nm_stack.append(False)
-                    else:
-                        queue.append(token)
-                else:
-                    if next_token == '(':
-                        nm_stack.append(True)
-                    else: 
-                        queue.append(token)
-            # if token is an operator (o1)
-            elif token in operators:
-                # while there is an operator token on top of the stack (o2), and either:
-                #    o1 is left associative and its precedence is <= o2
-                #    o1 is right associative and it precedence is < o2
-                while len(stack) > 0 and stack[len(stack) -1] in operators:
-                        # pop o2 and append to output queue
-                        op = stack.pop()
-                        queue.append(op)
-                # then push o1 onto the stack
-                # if in negate mode, apply demorgan first       
-                if is_in_negate_mode(): 
-                    stack.append(negate_op(token))
-                else: 
-                    stack.append(token)
-            # If the token is a left parenthesis, then push it onto the stack.
-            elif token == '(':
-                stack.append(token)
-                # if negate mode was not altered by previous token
-                # maintain negate mode from outer scope
-                if (i-1 >= 0) and token_list[i-1] != '!':
-                    nm_stack.append(is_in_negate_mode())
-            # if the token is a right parenthesis:
-            elif token == ')':
-                paren_matched = False
-                # Until the token at the top of the stack is a left parenthesis, 
-                # pop operators off the stack onto the output queue.
-                while len(stack) > 0:
-                    item = stack.pop()
-                    if item == '(':
-                        paren_matched = True
-                        if len(nm_stack) > 1:
-                            nm_stack.pop()
-                        break
-                    else:
-                        queue.append(item)
-                # If the stack runs out without finding a left parenthesis, 
-                # then there are mismatched parentheses
-                if not paren_matched:
-                    return None
-            else:
-                #TODO: failure mode here, token matches nothing we can identify
-                return None
-    # When there are no more tokens to read
-    # While there are still operator tokens in the stack
-    while (len(stack) > 0):
-        top = stack.pop()
-        # If the operator token on the top of the stack is a parenthesis, 
-        # then there are mismatched parentheses
-        if top == '(' or top == ')':
-            return None
-        # Pop the operator onto the output queue
-        else:
-            queue.append(top)
-    # if there are two negatives right after eachother, they cancel eachother
-    for i in range(0,len(queue)-1):
-        if queue[i] == '!' and queue[i+1] == '!':
-            queue[i] = ''
-            queue[i+1] = '' 
-    return queue
-           
-
-def build_tree(queue):
-    """ 
-    Uses queue built in get_RPN method to build a tree ...
-    Head node is returned in success
-    None is returned in failure 
-    """
-    operators = [_and, _or]
-    
-    stack = list()
-    while len(queue) > 0:
-        item = queue.popleft();
-        if item == '':
-            pass
-        elif type(item) is Variable:
-            stack.append(TreeNode(value=item))
-        elif item == _not:
-            if len(queue) > 0: 
-                item2 = queue.popleft()
-            else:
-                return None
-            stack.append(TreeNode(value=item2, neg=True))
-        elif item in operators:
-            right=stack.pop()
-            left= stack.pop()
-            stack.append(TreeNode(value=item, right=right, left=left, neg=False))
-    return stack.pop()
-        
-    
-## gets a truth value given an expression Node
-def calc_tree(node):
-    # if leaf, it is a Variable
-    if node.right is None and node.left is None:
-        if node.negate:
-            return not node.value.truth_value
-        else:
-            return node.value.truth_value
-    elif node.value == _and:
-        return calc_tree(node.right) and calc_tree(node.left)
-    elif node.value == _or:
-        return calc_tree(node.right) or calc_tree(node.left)
-
-## gets a truth value given an expression Node
-def calc_tree_soft(node):
-    # if leaf, it is a Variable
-    if node.right is None and node.left is None:
-        if node.negate:
-            return not node.value.truth_value_soft
-        else:
-            return node.value.truth_value_soft
-    elif node.value == _and:
-        return calc_tree_soft(node.right) and calc_tree_soft(node.left)
-    elif node.value == _or:
-        return calc_tree_soft(node.right) or calc_tree_soft(node.left)
-
-
 def print_inorder(node):
     if node is not None:
         if node.left is not None:
@@ -363,6 +197,7 @@ def query(expression):
     # inorder_clean(node)
     return result
 
+
 # see note above why() for more info
 def why_for_fact(var, rule_dict, string_queue, used_vars):
     """
@@ -415,7 +250,8 @@ def why_for_fact(var, rule_dict, string_queue, used_vars):
         if rule_exists is False:
             var.truth_value_soft = False
             used_vars.append(var)  # mark this var as evaluated
-
+            string = 'I KNOW IT IS NOT TRUE THAT {}'.format(var.string_value)
+            string_queue.append(string)
 
 # Current idea is to build up string responses in a queue
 # this queue is built in both why_for_fact as well as explain_result_2
@@ -439,9 +275,9 @@ def why(expression):
     result = expression.soft_evaluate()
     #for item in string_queue: print item
     token_list = expression.token_list
-    queue = get_RPN_2(token_list)
-    node = build_tree_2(queue)
-    truth, result_str = explain_result_2(node, string_queue)
+    queue = get_RPN(token_list)
+    node = build_tree(queue)
+    truth, result_str = explain_result(node, string_queue)
     print truth
     while len(string_queue) > 0:
         print string_queue.popleft()
@@ -460,9 +296,8 @@ def inorder_clean(node):
         if node.right is not None:
             inorder_clean(node.right)
 
-##################################
 
-def get_RPN_2(token_list):
+def get_RPN(token_list):
     """ 
     Uses shunting-yard algo to get infix into RPN form
     Handles '!' outside a Parenthesis in a stateful way
@@ -541,7 +376,7 @@ def get_RPN_2(token_list):
     return queue
         
 
-def build_tree_2(queue):
+def build_tree(queue):
     """ 
     Uses queue built in get_RPN method to build a tree ...
     Head node is returned in success
@@ -571,7 +406,7 @@ def build_tree_2(queue):
 
 
 ## gets a truth value given an expression Node
-def calc_tree_2(node):
+def calc_tree(node):
     # if leaf, it is a Variable
     if node.right is None and node.left is None:
         if node.negate:
@@ -580,16 +415,16 @@ def calc_tree_2(node):
             return node.value.truth_value
     elif node.value == _inclusive_not:
         if node.negate:
-            return calc_tree_2(node.right)
+            return calc_tree(node.right)
         else:
-            return not calc_tree_2(node.right)
+            return not calc_tree(node.right)
     elif node.value == _and:
-        return calc_tree_2(node.right) and calc_tree_2(node.left)
+        return calc_tree(node.right) and calc_tree(node.left)
     elif node.value == _or:
-        return calc_tree_2(node.right) or calc_tree_2(node.left)
+        return calc_tree(node.right) or calc_tree(node.left)
     
     
-def calc_tree_soft_2(node):
+def calc_tree_soft(node):
     # if leaf, it is a Variable
     if node.right is None and node.left is None:
         if node.negate:
@@ -598,47 +433,18 @@ def calc_tree_soft_2(node):
             return node.value.truth_value_soft
     elif node.value == _inclusive_not:
         if node.negate:
-            return calc_tree_soft_2(node.right)
+            return calc_tree_soft(node.right)
         else:
-            return not calc_tree_soft_2(node.right)
+            return not calc_tree_soft(node.right)
     elif node.value == _and:
-        return calc_tree_soft_2(node.right) and calc_tree_soft_2(node.left)
+        return calc_tree_soft(node.right) and calc_tree_soft(node.left)
     elif node.value == _or:
-        return calc_tree_soft_2(node.right) or calc_tree_soft_2(node.left)
+        return calc_tree_soft(node.right) or calc_tree_soft(node.left)
 
 
-def explain_result(node):
-    # if leaf, it is a Variable
-    if node.right is None and node.left is None:
-        if node.value.applied_rule is None:
-            if node.negate:
-                print 'I KNOW IT IS NOT TRUE THAT ' + node.value.string_value
-                return 'I KNOW IT IS NOT TRUE THAT ' + node.value.string_value
-            else:
-                print 'I KNOW THAT ' + node.value.string_value
-                return 'I KNOW THAT ' + node.value.string_value
-        else:
-            print 'BECAUSE ' + node.value.applied_rule.exp.why_stringify() + ' I know that ' + str(node.value.truth_value_soft)
-            return 'BECAUSE ' + node.value.applied_rule.exp.why_stringify() + ' I know that ' + str(node.value.truth_value_soft)
-    elif node.value == _inclusive_not:
-        if node.applied_rule is None:
-            if node.negate:
-                print 'I know that not not ' + explain_result(node.right)
-                return 'I know that not not ' + explain_result(node.right)
-            else:
-                print 'I know that not ' + node.value.string_value + ' is ' + str(node.value.truth_value_soft)
-                return 'I know that not ' + node.value.string_value + ' is ' + str(node.value.truth_value_soft)
-    elif node.value == _and:
-        print 'I know that ( ' + explain_result(node.right) + ' and ' + explain_result(node.left) + ' )'
-        return 'I know that ( ' + explain_result(node.right) + ' and ' + explain_result(node.left) + ' )'
-    elif node.value == _or:
-        print 'I know that ( ' + explain_result(node.right) + ' or ' + explain_result(node.left) + ' )'
-        return 'I know that ( ' + explain_result(node.right) + ' or ' + explain_result(node.left) + ' )'
-    
-    
 # see note by 'why' function
 # email me if you need any of this explained before sunday night
-def explain_result_2(node, string_queue):
+def explain_result(node, string_queue):
     # if leaf, it is a Variable
     if node.right is None and node.left is None:
         if node.negate:
@@ -647,7 +453,7 @@ def explain_result_2(node, string_queue):
             return node.value.truth_value_soft, node.value.string_value
     elif node.value == _inclusive_not:
         if node.negate:
-            truth, string = explain_result_2(node.right, string_queue)
+            truth, string = explain_result(node.right, string_queue)
             if truth == True:
                 string_queue.append('THUS I KNOW THAT NOT NOT {}'.format(string))
             else:
@@ -655,7 +461,7 @@ def explain_result_2(node, string_queue):
             info_string = 'NOT NOT {}'.format(string)
             return truth, info_string
         else:
-            truth, string = explain_result_2(node.right, string_queue)
+            truth, string = explain_result(node.right, string_queue)
             truth = not truth
             if truth == True:
                 string_queue.append('THUS I KNOW THAT NOT {}'.format(string))
@@ -664,8 +470,8 @@ def explain_result_2(node, string_queue):
             info_string = 'NOT NOT {}'.format(string)
             return not truth, info_string
     elif node.value == _and:
-        r_truth, r_string = explain_result_2(node.right, string_queue) 
-        l_truth, l_string = explain_result_2(node.left, string_queue)
+        r_truth, r_string = explain_result(node.right, string_queue)
+        l_truth, l_string = explain_result(node.left, string_queue)
         truth = r_truth and l_truth
         string = '( {} AND {} )'.format(r_string, l_string)
         if truth == True:
@@ -674,8 +480,8 @@ def explain_result_2(node, string_queue):
             string_queue.append('THUS I CANNOT PROVE {}'.format(string, string_queue))
         return truth, string
     elif node.value == _or:
-        r_truth, r_string = explain_result_2(node.right) 
-        l_truth, l_string = explain_result_2(node.left)
+        r_truth, r_string = explain_result(node.right)
+        l_truth, l_string = explain_result(node.left)
         truth = r_truth or l_truth
         string = '( {} OR {} )'.format(r_string, l_string)
         if truth == True:

@@ -49,7 +49,7 @@ class Parser(object):
                             flag = True
                             var.truth_value = False
                             variables[i] = var
-                            facts_raw.remove(var)
+                            facts_raw.append(var)
                             break
                     if not flag: print 'Variable doesn\'t exist'
                 else:
@@ -68,7 +68,8 @@ class Parser(object):
 
             print 'Facts:'
             for fact in facts_raw:
-                print '\t{}'.format(fact.name)
+                if fact.truth_value is True:
+                    print '\t{}'.format(fact.name)
 
             print 'Rules:'
             for rule in rules:
