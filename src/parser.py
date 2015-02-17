@@ -13,7 +13,8 @@ class Parser(object):
         match_learn = re.match(r'learn', input, re.I)
         match_query = re.match(r'[Q/q]uery (.*)', input)
         match_why = re.match(r'[W/w]hy (.*)', input)
-
+        match_demon = re.match(r'Summon', input, re.I)
+        match_exit = re.match(r'exit', input, re.I)
 
         if match_teach:            
             lhs = match_teach.group(1)
@@ -91,5 +92,37 @@ class Parser(object):
             # print why_tuple[0]
             # print why_tuple[1]
 
+        elif match_demon:
+            pentagram = """MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+MMMMMMMMMMMMds+:--------:+sdNMMMMMMMMMMM
+MMMMMMMMms:-+sdNMMMMMMMMNdy+--omMMMMMMMM
+MMMMMMh:` /mMMMMMMMMMMMMMMMMm+ `-yMMMMMM
+MMMMd--hN``--sNMMMMMMMMMMNy:..`md:.hMMMM
+MMM+`yMMMy hd+./hMMMMMMh/.+dd sMMMh`/MMM
+MM:.mMMMMM:.NMMh/.+dd+./hMMM--MMMMMm--NM
+M+`mMMMMMMN`+MMMMm-  .dMMMMo mMMMMMMN.:M
+d yMMMMMMMMy dNy:.omNs--sNm oMMMMMMMMh h
+/`MMMMMMMMMM.`.+dMMMMMMm+.``NMMMMMMMMM-:
+.:MMMMMMMd+./`oMMMMMMMMMMs /.+dMMMMMMM/`
+.:MMMMmo.:yNMs dMMMMMMMMm`oMNy:.omMMMM/`
+/`MNy:.omMMMMM--MMMMMMMM:.MMMMMNs--sNM.:
+d -` :++++++++: /++++++/ :++++++++:  : h
+M+ yddddddddddd+ yddddy /dddddddddddy`/M
+MM/.mMMMMMMMMMMM.-MMMM/.NMMMMMMMMMMm.:NM
+MMMo`sMMMMMMMMMMd sMMy hMMMMMMMMMMy`+MMM
+MMMMd--hMMMMMMMMM+`mN`/MMMMMMMMMh--hMMMM
+MMMMMMh:.omMMMMMMN.:/`NMMMMMMms.:hMMMMMM
+MMMMMMMMNs:./shmMMh  yMMNds/.:smMMMMMMMM
+MMMMMMMMMMMMdy+/---``---:+sdMMMMMMMMMMMM
+MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM"""
+            print pentagram
+            print '-Copyright: http://www.retrojunkie.com/asciiart/myth/pentagrm.htm \n'
+            musk_quote = """With artifical intellegence we are summoning the demon. You know all those stories where there's the guy with the pentagram and the holy water, and it's like yeah, he's sure he can control the demon. Doesn't work out. - Elon Musk"""
+            print musk_quote + '\n'
+            
+        elif match_exit:
+            print "Thanks for using SkynetBot! Please come again!"
+            exit()
+            
         else:
             print 'Unrecognized LHS'
