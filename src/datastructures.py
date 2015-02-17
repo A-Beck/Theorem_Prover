@@ -472,7 +472,7 @@ def explain_result(node, string_queue):
             else:
                 string_queue.append('THUS I CANNOT PROVE NOT {}'.format(string))
             info_string = 'NOT NOT {}'.format(string)
-            return not truth, info_string
+            return truth, info_string
     elif node.value == _and:
         r_truth, r_string = explain_result(node.right, string_queue)
         l_truth, l_string = explain_result(node.left, string_queue)
